@@ -23,21 +23,25 @@ import {
    ============================================================ */
 
 const C = {
-  ink: "#15171C",
-  panel: "#1C1F27",
-  panelEdge: "#30343F",
-  bg: "#ECE7DC",
-  card: "#FBF9F3",
-  cardEdge: "#E3DACA",
-  line: "#EBE4D6",
-  clay: "#B85C38",
-  clayDeep: "#9F4E2E",
-  gold: "#CC9A2E",
-  goldSoft: "#E7C77A",
-  stone: "#8B8475",
-  stoneSoft: "#B7AF9E",
+  ink: "#13242E",
+  panel: "#0F2C3C",
+  panelEdge: "#28505F",
+  bg: "#E8ECEC",
+  card: "#FBFCFC",
+  cardEdge: "#DDE6E6",
+  line: "#EAEFEF",
+  clay: "#1C6E8C",
+  clayDeep: "#15576F",
+  gold: "#B5894C",
+  goldSoft: "#D8BD8A",
+  stone: "#6E7E84",
+  stoneSoft: "#A2B0B4",
   red: "#C0492F",
-  ochre: "#B5863C",
+  redSoft: "#E0795F",
+  ochre: "#C08A3C",
+  green: "#2F855A",
+  greenSoft: "#5BA77E",
+  neutral: "#6B7B82",
 };
 const D = "'Space Grotesk', ui-sans-serif, system-ui, sans-serif";
 const B = "'Inter', ui-sans-serif, system-ui, sans-serif";
@@ -695,17 +699,27 @@ function Dashboard({ state, overheadTotal, go }) {
       <div style={st.panel}>
         <div style={st.panelTop}>
           <span style={st.panelLabel}>Net profit</span>
-          <span style={{ ...st.tag, color: net >= 0 ? C.gold : C.red }}>
-            {net >= 0 ? "In the black" : "Underwater"}
+          <span
+            style={{
+              ...st.tag,
+              color: net > 0 ? C.greenSoft : net < 0 ? C.redSoft : C.stoneSoft,
+            }}
+          >
+            {net > 0 ? "In the green" : net < 0 ? "In the red" : "Break even"}
           </span>
         </div>
-        <div style={{ ...st.big, color: net >= 0 ? C.goldSoft : C.red }}>
+        <div
+          style={{
+            ...st.big,
+            color: net > 0 ? C.greenSoft : net < 0 ? C.redSoft : C.stoneSoft,
+          }}
+        >
           {money(net)}
         </div>
         <div style={st.pnlRow}>
-          <Pnl label="Revenue" v={money(revenue)} />
-          <Pnl label="Direct cost" v={money(-directCost)} />
-          <Pnl label="Overhead" v={money(-overheadTotal)} />
+          <Pnl label="Revenue" v={money(revenue)} light />
+          <Pnl label="Direct cost" v={money(-directCost)} light />
+          <Pnl label="Overhead" v={money(-overheadTotal)} light />
         </div>
       </div>
 
@@ -731,7 +745,7 @@ function Dashboard({ state, overheadTotal, go }) {
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ ...st.jobProfit, color: jobProfit(j) >= 0 ? C.ink : C.red }}>
+              <div style={{ ...st.jobProfit, color: jobProfit(j) > 0 ? C.green : jobProfit(j) < 0 ? C.red : C.ink }}>
                 {money(jobProfit(j))}
               </div>
               <div style={st.jobMeta}>{pct(jobMargin(j))} margin</div>
@@ -781,7 +795,7 @@ function Jobs({ state, dispatch }) {
                 <div style={st.jobMeta}>{j.type} · {j.status}</div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ ...st.jobProfit, color: profit >= 0 ? C.ink : C.red }}>
+                <div style={{ ...st.jobProfit, color: profit > 0 ? C.green : profit < 0 ? C.red : C.ink }}>
                   {money(profit)}
                 </div>
                 <div style={st.jobMeta}>{pct(jobMargin(j))}</div>
@@ -964,11 +978,11 @@ function BidCalc({ settings, overheadTotal }) {
   }, [targetType, targetVal, total, reserve]);
 
   const A = mode === "forward" ? fwd : rev;
-  const status = A.p <= 0 ? { l: "Enter a price", c: C.stone, f: 0 }
-    : A.profit < 0 ? { l: "Below break-even", c: C.red, f: 6 }
+  const status = A.p <= 0 ? { l: "Enter a price", c: C.stoneSoft, f: 0 }
+    : A.profit < 0 ? { l: "Below break-even", c: C.redSoft, f: 6 }
     : A.margin < 0.15 ? { l: "Thin", c: C.ochre, f: (A.margin / 0.5) * 100 }
     : A.margin < 0.3 ? { l: "Okay", c: C.goldSoft, f: (A.margin / 0.5) * 100 }
-    : { l: "Healthy", c: C.gold, f: Math.min((A.margin / 0.5) * 100, 100) };
+    : { l: "Healthy", c: C.greenSoft, f: Math.min((A.margin / 0.5) * 100, 100) };
 
   return (
     <div>
@@ -1320,17 +1334,17 @@ function Aging({ label, v, c }) {
 }
 
 const st = {
-  app: { minHeight: "100vh", background: C.bg, fontFamily: B, color: C.ink, maxWidth: 480, margin: "0 auto", paddingBottom: 78, position: "relative" },
-  topbar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px 10px", position: "sticky", top: 0, background: C.bg, zIndex: 5 },
+  app: { minHeight: "100vh", background: "rgba(232,236,236,0.92)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", fontFamily: B, color: C.ink, maxWidth: 480, margin: "0 auto", paddingBottom: 78, position: "relative", boxShadow: "0 0 80px rgba(8,26,38,0.45)" },
+  topbar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px 10px", position: "sticky", top: 0, background: "rgba(232,236,236,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", zIndex: 5 },
   brand: { display: "flex", alignItems: "center", gap: 8 },
   brandMark: { color: C.clay, fontSize: 18 },
   brandName: { fontFamily: D, fontWeight: 700, fontSize: 20, letterSpacing: "-0.02em" },
   brandTag: { fontSize: 11.5, color: C.stone, fontWeight: 500 },
   signout: { display: "inline-flex", alignItems: "center", gap: 5, border: `1px solid ${C.cardEdge}`, background: C.card, color: C.stone, padding: "6px 10px", borderRadius: 9, fontFamily: D, fontSize: 12, fontWeight: 600, cursor: "pointer" },
-  splash: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: C.bg },
+  splash: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 },
   splashMark: { color: C.clay, fontSize: 34 },
   splashText: { fontFamily: D, fontSize: 14, fontWeight: 600, color: C.stone },
-  authPage: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 18, background: C.bg },
+  authPage: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 18 },
   authCard: { width: "100%", maxWidth: 380, background: C.card, border: `1px solid ${C.cardEdge}`, borderRadius: 18, padding: 22 },
   authTitle: { fontFamily: D, fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: "16px 0 4px" },
   authSub: { fontSize: 13.5, color: C.stone, margin: "0 0 18px" },
