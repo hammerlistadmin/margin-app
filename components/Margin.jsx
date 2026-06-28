@@ -1,5 +1,7 @@
 "use client";
 import { useReducer, useMemo, useState, useEffect } from "react";
+import { supabase, isSupabaseReady } from "@/lib/supabaseClient";
+import * as db from "@/lib/db";
 import {
   LayoutDashboard,
   Hammer,
@@ -9,6 +11,7 @@ import {
   Plus,
   TrendingUp,
   X,
+  LogOut,
 } from "lucide-react";
 
 /* ============================================================
@@ -408,9 +411,209 @@ const shuffle = (arr) => {
   return a;
 };
 
+function buildState(d) {
+  const s = d.settings || {};
+  return {
+    jobs: d.jobs || [],
+    expenses: d.expenses || [],
+    invoices: d.invoices || [],
+    settings: {
+      company: s.company || "Margin",
+      laborRate: s.labor_rate != null ? Number(s.labor_rate) : 45,
+      reservePct: s.reserve_pct != null ? Number(s.reserve_pct) : 28,
+      overhead: d.overhead || [],
+    },
+  };
+}
+
 export default function Margin() {
-  const [state, dispatch] = useReducer(reducer, seed);
+  const [phase, setPhase] = useState(isSupabaseReady ? "loading" : "demo");
+  const [initial, setInitial] = useState(null);
+  const [email, setEmail] = useState("");
+
+  const loadSession = async () => {
+    try {
+      const user = await db.getUser();
+      if (!user) {
+        setPhase("login");
+        return;
+      }
+      const data = await db.loadAll();
+      setInitial(buildState(data));
+      setEmail(user.email || "");
+      setPhase("app");
+    } catch (e) {
+      console.error(e);
+      setPhase("login");
+    }
+  };
+
+  useEffect(() => {
+    if (isSupabaseReady) loadSession();
+  }, []);
+
+  const handleSignOut = async () => {
+    await db.signOut();
+    setInitial(null);
+    setPhase("login");
+  };
+
+  if (phase === "demo") return <MarginApp initialState={seed} persist={false} />;
+  if (phase === "loading") return <Splash />;
+  if (phase === "login")
+    return (
+      <Login
+        onAuthed={async () => {
+          setPhase("loading");
+          await loadSession();
+        }}
+      />
+    );
+  return (
+    <MarginApp
+      initialState={initial}
+      persist={true}
+      userEmail={email}
+      onSignOut={handleSignOut}
+    />
+  );
+}
+
+function Splash() {
+  return (
+    <div style={st.splash}>
+      <span style={st.splashMark}>◣</span>
+      <span style={st.splashText}>Loading…</span>
+    </div>
+  );
+}
+
+function Login({ onAuthed }) {
+  const [mode, setMode] = useState("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    setErr("");
+    if (!email.trim() || !password) {
+      setErr("Enter your email and password.");
+      return;
+    }
+    setBusy(true);
+    try {
+      if (mode === "signin") await db.signIn(email.trim(), password);
+      else await db.signUp(email.trim(), password);
+      await onAuthed();
+    } catch (e) {
+      setErr(e.message || "Something went wrong.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={st.authPage}>
+      <div style={st.authCard}>
+        <div style={st.brand}>
+          <span style={st.brandMark}>◣</span>
+          <span style={st.brandName}>Margin</span>
+        </div>
+        <h1 style={st.authTitle}>
+          {mode === "signin" ? "Welcome back" : "Create your account"}
+        </h1>
+        <p style={st.authSub}>Budgeting that remembers everything you enter.</p>
+
+        <label style={st.field}>
+          <span style={st.fieldLabel}>Email</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={st.input}
+            placeholder="you@email.com"
+          />
+        </label>
+        <label style={st.field}>
+          <span style={st.fieldLabel}>Password</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+            style={st.input}
+            placeholder="••••••••"
+          />
+        </label>
+
+        {err && <div style={st.authErr}>{err}</div>}
+
+        <button style={st.primary} onClick={submit} disabled={busy}>
+          {busy ? "Working…" : mode === "signin" ? "Sign in" : "Create account"}
+        </button>
+
+        <button
+          style={st.authToggle}
+          onClick={() => {
+            setErr("");
+            setMode(mode === "signin" ? "signup" : "signin");
+          }}
+        >
+          {mode === "signin"
+            ? "New here? Create an account"
+            : "Already have an account? Sign in"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MarginApp({ initialState, persist, userEmail, onSignOut }) {
+  const [state, rawDispatch] = useReducer(reducer, initialState);
   const [view, setView] = useState("dashboard");
+
+  // Wrap dispatch: update the UI immediately, then persist to Supabase
+  // (only when persist is true — demo mode stays purely in-memory).
+  const dispatch = (action) => {
+    rawDispatch(action);
+    if (!persist) return;
+    try {
+      switch (action.type) {
+        case "addJob":
+          db.upsertJob(action.job);
+          break;
+        case "updateJobCost": {
+          const j = state.jobs.find((x) => x.id === action.id);
+          if (j) db.upsertJob({ ...j, costs: { ...j.costs, [action.key]: action.value } });
+          break;
+        }
+        case "setDeposit": {
+          const j = state.jobs.find((x) => x.id === action.id);
+          if (j) db.upsertJob({ ...j, deposit: action.value });
+          break;
+        }
+        case "addExpense":
+          db.upsertExpense(action.exp);
+          break;
+        case "payInvoice":
+          db.updateInvoice(action.id, { status: "paid", age: 0 });
+          break;
+        case "setSetting": {
+          const col = action.key === "laborRate" ? "labor_rate"
+            : action.key === "reservePct" ? "reserve_pct" : action.key;
+          db.upsertSettings({ [col]: action.value });
+          break;
+        }
+        case "setOverhead":
+          db.upsertOverhead(action.value);
+          break;
+        default:
+          break;
+      }
+    } catch (e) {
+      console.error("persist failed", e);
+    }
+  };
 
   const overheadTotal = state.settings.overhead.reduce((s, o) => s + o.amount, 0);
 
@@ -429,7 +632,13 @@ export default function Margin() {
           <span style={st.brandMark}>◣</span>
           <span style={st.brandName}>{state.settings.company}</span>
         </div>
-        <span style={st.brandTag}>Budgeting for trades</span>
+        {persist ? (
+          <button onClick={onSignOut} style={st.signout} title={userEmail}>
+            <LogOut size={14} /> Sign out
+          </button>
+        ) : (
+          <span style={st.brandTag}>Budgeting for trades</span>
+        )}
       </header>
 
       <main style={st.main}>
@@ -534,8 +743,9 @@ function Dashboard({ state, overheadTotal, go }) {
       <div style={st.callout}>
         <TrendingUp size={16} color={C.clay} />
         <span>
-          Revenue isn't profit. {ranked[0].type} jobs are carrying your margin
-          right now — price more like them.
+          {ranked.length > 0
+            ? `Revenue isn't profit. ${ranked[0].type} jobs are carrying your margin right now — price more like them.`
+            : "Add your first job to start tracking what each one actually makes."}
         </span>
       </div>
     </div>
@@ -701,7 +911,7 @@ function AddJob({ dispatch, close }) {
           dispatch({
             type: "addJob",
             job: {
-              id: Date.now(),
+              id: crypto.randomUUID(),
               client,
               type,
               quoted: num(quoted),
@@ -918,7 +1128,7 @@ function Expenses({ state, dispatch }) {
         <button style={st.primary} onClick={() => {
           if (!desc || !num(amount)) return;
           dispatch({ type: "addExpense", exp: {
-            id: Date.now(), date: "Today", desc, category: cat,
+            id: crypto.randomUUID(), date: "Today", desc, category: cat,
             amount: num(amount), jobId: jobId ? Number(jobId) : null,
           }});
           setDesc(""); setAmount("");
@@ -1032,7 +1242,7 @@ function SettingsView({ state, dispatch, overheadTotal }) {
         ))}
         <button style={st.ghost} onClick={() => dispatch({
           type: "setOverhead",
-          value: [...s.overhead, { id: Date.now(), label: "New cost", amount: 0 }],
+          value: [...s.overhead, { id: crypto.randomUUID(), label: "New cost", amount: 0 }],
         })}>+ Add line</button>
       </div>
 
@@ -1116,6 +1326,16 @@ const st = {
   brandMark: { color: C.clay, fontSize: 18 },
   brandName: { fontFamily: D, fontWeight: 700, fontSize: 20, letterSpacing: "-0.02em" },
   brandTag: { fontSize: 11.5, color: C.stone, fontWeight: 500 },
+  signout: { display: "inline-flex", alignItems: "center", gap: 5, border: `1px solid ${C.cardEdge}`, background: C.card, color: C.stone, padding: "6px 10px", borderRadius: 9, fontFamily: D, fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  splash: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: C.bg },
+  splashMark: { color: C.clay, fontSize: 34 },
+  splashText: { fontFamily: D, fontSize: 14, fontWeight: 600, color: C.stone },
+  authPage: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 18, background: C.bg },
+  authCard: { width: "100%", maxWidth: 380, background: C.card, border: `1px solid ${C.cardEdge}`, borderRadius: 18, padding: 22 },
+  authTitle: { fontFamily: D, fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: "16px 0 4px" },
+  authSub: { fontSize: 13.5, color: C.stone, margin: "0 0 18px" },
+  authErr: { background: "#F6E2DC", color: C.red, fontSize: 12.5, fontWeight: 500, padding: "9px 11px", borderRadius: 9, marginBottom: 10 },
+  authToggle: { width: "100%", border: "none", background: "none", color: C.clay, fontFamily: D, fontSize: 13, fontWeight: 600, cursor: "pointer", marginTop: 12, padding: 6 },
   main: { padding: "6px 14px 0" },
 
   quoteBar: { width: "100%", display: "flex", gap: 10, alignItems: "flex-start", textAlign: "left", background: C.ink, border: "none", borderRadius: 14, padding: "14px 16px", marginBottom: 16, cursor: "pointer", color: C.bg, minHeight: 58 },
