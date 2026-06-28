@@ -1334,16 +1334,16 @@ function Aging({ label, v, c }) {
 }
 
 const st = {
-  app: { minHeight: "100vh", background: "transparent", fontFamily: B, color: C.ink, maxWidth: 480, margin: "0 auto", paddingBottom: 78, position: "relative" },
-  topbar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 18px 12px" },
+  app: { minHeight: "100vh", background: "rgba(232,236,236,0.92)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", fontFamily: B, color: C.ink, maxWidth: 480, margin: "0 auto", paddingBottom: 78, position: "relative", boxShadow: "0 0 80px rgba(8,26,38,0.45)" },
+  topbar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px 10px", position: "sticky", top: 0, background: "rgba(232,236,236,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", zIndex: 5 },
   brand: { display: "flex", alignItems: "center", gap: 8 },
   brandMark: { color: C.clay, fontSize: 18 },
-  brandName: { fontFamily: D, fontWeight: 700, fontSize: 20, letterSpacing: "-0.02em", textShadow: "0 1px 10px rgba(255,255,255,0.5)" },
+  brandName: { fontFamily: D, fontWeight: 700, fontSize: 20, letterSpacing: "-0.02em" },
   brandTag: { fontSize: 11.5, color: C.stone, fontWeight: 500 },
   signout: { display: "inline-flex", alignItems: "center", gap: 5, border: `1px solid ${C.cardEdge}`, background: C.card, color: C.stone, padding: "6px 10px", borderRadius: 9, fontFamily: D, fontSize: 12, fontWeight: 600, cursor: "pointer" },
   splash: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 },
   splashMark: { color: C.clay, fontSize: 34 },
-  splashText: { fontFamily: D, fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.92)", textShadow: "0 1px 8px rgba(8,26,38,0.5)" },
+  splashText: { fontFamily: D, fontSize: 14, fontWeight: 600, color: C.stone },
   authPage: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 18 },
   authCard: { width: "100%", maxWidth: 380, background: C.card, border: `1px solid ${C.cardEdge}`, borderRadius: 18, padding: 22 },
   authTitle: { fontFamily: D, fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: "16px 0 4px" },
@@ -1356,8 +1356,8 @@ const st = {
   quoteMark: { fontFamily: D, fontSize: 30, fontWeight: 700, color: C.clay, lineHeight: 0.8, marginTop: 6, flexShrink: 0 },
   quoteText: { fontFamily: D, fontSize: 15, fontWeight: 500, lineHeight: 1.35, alignSelf: "center" },
 
-  h2: { fontFamily: D, fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: "-0.02em", color: "#FFFFFF", textShadow: "0 1px 18px rgba(8,26,38,0.6), 0 1px 3px rgba(8,26,38,0.45)" },
-  h2sub: { fontSize: 13, color: "rgba(255,255,255,0.9)", margin: "3px 0 0", textShadow: "0 1px 10px rgba(8,26,38,0.55)" },
+  h2: { fontFamily: D, fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: "-0.02em" },
+  h2sub: { fontSize: 13, color: C.stone, margin: "3px 0 0" },
 
   panel: { background: C.panel, border: `1px solid ${C.panelEdge}`, borderRadius: 18, padding: "16px 16px 14px", boxShadow: "0 12px 30px -14px rgba(0,0,0,.5)" },
   panelTop: { display: "flex", justifyContent: "space-between", alignItems: "baseline" },
@@ -1430,7 +1430,7 @@ const st = {
   seg3On: { background: C.clay, borderColor: C.clay, color: "#fff" },
 
   meterTrack: { height: 6, borderRadius: 99, background: "#2C313C", overflow: "hidden", marginBottom: 16 },
-  fineprint: { fontSize: 11.5, color: "rgba(255,255,255,0.9)", textAlign: "center", lineHeight: 1.5, padding: "2px 10px 8px", textShadow: "0 1px 8px rgba(8,26,38,0.5)" },
+  fineprint: { fontSize: 11.5, color: C.stone, textAlign: "center", lineHeight: 1.5, padding: "2px 10px 8px" },
 
   callout: { display: "flex", gap: 10, alignItems: "flex-start", background: C.card, border: `1px solid ${C.cardEdge}`, borderRadius: 14, padding: 14, marginTop: 14, fontSize: 13, lineHeight: 1.45, color: C.ink },
 
